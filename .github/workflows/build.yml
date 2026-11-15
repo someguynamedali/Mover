@@ -18,9 +18,13 @@ jobs:
         run: |
           D=android/app/src/main/java/com/me/musicmover
           mkdir -p $D
-          cp AudioService.java MediaPlugin.java MainActivity.java $D/
+          for f in AudioService.java MediaPlugin.java MainActivity.java; do
+            src=$(find . -name $f -not -path './android/*' -not -path './node_modules/*' | head -1)
+            echo "$f -> $src"
+            cp "$src" $D/
+          done
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 26/' android/variables.gradle
-          python3 patch.py
+          python3 "$(find . -name patch.py -not -path './node_modules/*' | head -1)"
       - run: npx cap sync android
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
