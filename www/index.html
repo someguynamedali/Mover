@@ -125,6 +125,7 @@ body.sheet #ov{opacity:1;pointer-events:auto}body.sheet #sh{transform:none}
 <div class="sv"><span class="dot" id="dot"></span><span id="sst">Проверяю сервер…</span></div>
 <input type="text" id="srv" placeholder="http://localhost:8787">
 <input type="password" id="key" placeholder="Пароль сервера (если есть)" style="width:100%;background:rgba(255,255,255,.07);border:0;border-radius:14px;padding:12px;color:var(--fg);font:inherit;margin-bottom:8px">
+<input type="text" id="gid" placeholder="ID гиста (постоянная ссылка, необязательно)" style="width:100%;background:rgba(255,255,255,.07);border:0;border-radius:14px;padding:12px;color:var(--fg);font:inherit;margin-bottom:8px">
 <button class="pill g" onclick="ping()">Проверить сервер</button>
 <p style="margin-top:14px">Сервер запускается в Termux и нужен только пока идёт скачивание. Потом музыка играет без интернета. Нажми «⋯» у трека, чтобы добавить его в плейлист или удалить.</p>
 <button class="dng" onclick="clearAll()">Удалить всю музыку с телефона</button></div>
@@ -143,17 +144,33 @@ const save=t=>new Promise(r=>{tx("readwrite").put(t).onsuccess=r});
 const st=s=>$("st").textContent=s;
 const sheet=o=>document.body.classList.toggle("sheet",!!o);
 const full=o=>document.body.classList.toggle("full",!!o);
-const base=()=>same?location.origin:$("srv").value.replace(/\/$/,"");
+const base=()=>{if(same)return location.origin;const v=$("srv").value.trim();try{return new URL(v).origin}catch(e){return v.replace(/\/$/,"")}};
 $("srv").value=same?location.origin:(localStorage.srv||"http://localhost:8787");
 const kq=()=>{const k=$("key").value;return k?"key="+encodeURIComponent(k):""};
+(function(){const h=new URLSearchParams(location.hash.slice(1));
+ if(h.get("g"))localStorage.setItem("gist",h.get("g"));
+ if(h.get("k"))localStorage.setItem("key",h.get("k"));
+ if(h.get("g")||h.get("k"))history.replaceState(null,"",location.pathname+location.search)})();
 $("key").value=localStorage.getItem("key")||"";
-async function ping(){if(!same)localStorage.srv=$("srv").value;localStorage.setItem("key",$("key").value);
+$("gid").value=localStorage.getItem("gist")||"";
+let lastSync=0;
+async function syncServer(force){const g=($("gid").value||localStorage.getItem("gist")||"").trim();if(!g||same)return;
+ if(!force&&Date.now()-lastSync<60000)return;lastSync=Date.now();
+ try{const r=await fetch("https://api.github.com/gists/"+encodeURIComponent(g),{cache:"no-store"});if(!r.ok)return;
+  const j=await r.json(),f=j.files&&(j.files["server.json"]||Object.values(j.files)[0]);if(!f)return;
+  const u=(JSON.parse(f.content).url||"").replace(/\/$/,"");if(u){$("srv").value=u;localStorage.setItem("srv",u)}}catch(e){}}
+$("gid").onchange=()=>{localStorage.setItem("gist",$("gid").value.trim());syncServer(true)};
+function applyInvite(v){const i=v.indexOf("#");if(i<0)return false;const h=new URLSearchParams(v.slice(i+1));if(!h.get("g")&&!h.get("k"))return false;
+ if(h.get("g")){localStorage.setItem("gist",h.get("g"));$("gid").value=h.get("g")}
+ if(h.get("k")){localStorage.setItem("key",h.get("k"));$("key").value=h.get("k")}
+ $("srv").value="";return true}
+async function ping(){if(applyInvite($("srv").value))lastSync=0;await syncServer(true);if(!same)localStorage.srv=$("srv").value;localStorage.setItem("key",$("key").value);
  try{const r=await fetch(base()+"/ping?"+kq());
   if(r.status==401){$("dot").className="dot bad";$("sst").textContent="Введи пароль сервера";sheet(1);$("key").focus();return}
-  if(!r.ok)throw 0;$("dot").className="dot ok";$("sst").textContent="Сервер подключён"}
+  if(!r.ok||(await r.text()).trim()!=="ok")throw 0;$("dot").className="dot ok";$("sst").textContent="Сервер подключён"}
  catch(e){$("dot").className="dot bad";$("sst").textContent="Нет связи или неверный пароль"}}
 ping();
-$("st").textContent="Версия 14";
+$("st").textContent="Версия 16";
 document.querySelectorAll(".plus,.fab").forEach(b=>{b.addEventListener("touchend",e=>{e.preventDefault();sheet(1)},{passive:false});b.addEventListener("click",()=>sheet(1))});
 const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 if(!native&&/^https?:$/.test(location.protocol)&&"serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
@@ -201,7 +218,7 @@ function menu(t,pick){const m=$("mn"),pls=[...new Set(tracks.flatMap(x=>x.pls||[
  else{pls.filter(p=>!(t.pls||[]).includes(p)).forEach(p=>add("＋ "+p,()=>{(t.pls=t.pls||[]).push(p);save(t);closeMenu();st(`Добавлено в «${p}»`);draw()}));
   add("Новый плейлист…",()=>{const n=prompt("Название плейлиста");if(n&&n.trim()){(t.pls=t.pls||[]).push(n.trim());save(t);closeMenu();draw()}})}
  document.body.classList.add("menu")}
-async function importLink(){const url=$("lk").value.trim();if(!url)return;
+async function importLink(){const url=$("lk").value.trim();if(!url)return;await syncServer();
  st("Читаю плейлист…");sheet(0);
  try{const r=await fetch(`${base()}/playlist?url=${encodeURIComponent(url)}&${kq()}`);
   if(!r.ok)throw 0;const j=await r.json();let added=0;
@@ -213,9 +230,9 @@ async function dl(t,url){
   const r=await fetch(`${base()}/fetch?${url?"url="+encodeURIComponent(url):"q="+encodeURIComponent(t.artist+" - "+t.title)+"&dur="+(t.dur||0)}&${kq()}`);
   if(r.status==404){t.fail=1;await save(t);return false}
   if(!r.ok)throw 0;t.blob=await r.blob();t.fail=0;await save(t);return true}
-  catch(e){await new Promise(r=>setTimeout(r,3000*(k+1)))}}
+  catch(e){await syncServer();await new Promise(r=>setTimeout(r,3000*(k+1)))}}
  t.fail=1;await save(t);return false}
-async function dlAll(){if(busy)return;const todo=tracks.filter(t=>!t.blob);
+async function dlAll(){if(busy)return;await syncServer();const todo=tracks.filter(t=>!t.blob);
  if(!todo.length&&!tracks.some(t=>t.blob&&!t.ex)){st(tracks.length?"Всё уже скачано":"Сначала добавь плейлист кнопкой +");return}
  busy=true;$("ln").style.display="block";let i=0,bad=0;
  for(const t of todo){st(`Скачиваю ${i+1} из ${todo.length}: ${t.title}`);
@@ -274,7 +291,7 @@ function findTracks(){const q=$("sq").value.trim();if(!q)return;sheet(0);searchO
 async function searchOpen(q,target){const R=$("sr");R.innerHTML="";
  const h=document.createElement("h2");h.textContent=target?"Другая версия":"Результаты поиска";R.appendChild(h);
  const s=document.createElement("small");s.textContent="Ищу «"+q+"»…";R.appendChild(s);document.body.classList.add("srch");
- try{const r=await fetch(`${base()}/search?q=${enc(q)}&${kq()}`);if(!r.ok)throw 0;const list=await r.json();
+ try{await syncServer();const r=await fetch(`${base()}/search?q=${enc(q)}&${kq()}`);if(!r.ok)throw 0;const list=await r.json();
   s.textContent=list.length?"Нажми на трек, чтобы скачать":"Ничего не найдено";
   list.forEach(it=>{const b=document.createElement("button");b.className="rs";
    b.innerHTML='<div class="i"><b></b><small></small></div><span class="bd"></span>';
