@@ -137,7 +137,7 @@ let db,tracks=[],cur=null,busy=false,shuffle=false,rep=0,flt="";
 const same=location.port=="8787";
 const open=indexedDB.open("mm",1);
 open.onupgradeneeded=e=>e.target.result.createObjectStore("t",{keyPath:"id"});
-open.onsuccess=e=>{db=e.target.result;load()};
+open.onsuccess=e=>{db=e.target.result;load();setTimeout(syncNativeCompleted,1200)};
 const tx=m=>db.transaction("t",m).objectStore("t");
 const load=()=>tx("readonly").getAll().onsuccess=e=>{tracks=e.target.result;tracks.forEach(t=>{if(!t.pls)t.pls=t.pl?[t.pl]:[]});draw()};
 const save=t=>new Promise(r=>{tx("readwrite").put(t).onsuccess=r});
@@ -173,8 +173,16 @@ ping();
 $("st").textContent="Версия 16";
 document.querySelectorAll(".plus,.fab").forEach(b=>{b.addEventListener("touchend",e=>{e.preventDefault();sheet(1)},{passive:false});b.addEventListener("click",()=>sheet(1))});
 const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+let DownloadCtl=null, nativeImporting=false;
+if(native){try{DownloadCtl=Capacitor.registerPlugin("DownloadCtl");
+ DownloadCtl.addListener("progress",e=>{st(`Фоновая загрузка: ${e.title||"трек"} — ${e.percent>=0?e.percent+"%":"идёт"}`)});
+ DownloadCtl.addListener("completed",()=>syncNativeCompleted());
+ DownloadCtl.addListener("failed",e=>{st("Не удалось скачать: "+(e.title||e.id||"трек"));syncNativeCompleted()});
+ }catch(e){DownloadCtl=null}}
 if(!native&&/^https?:$/.test(location.protocol)&&"serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncNativeCompleted()});
+window.addEventListener("pageshow",()=>syncNativeCompleted());
 
 function csv(text){const rows=[];let r=[],c="",q=false;
  for(let i=0;i<text.length;i++){const ch=text[i];
@@ -225,6 +233,34 @@ async function importLink(){const url=$("lk").value.trim();if(!url)return;await 
   added=await addTo(j.tracks,j.name);st(`Плейлист «${j.name}»: ${added} треков. Скачиваю…`);$("lk").value="";draw();dlAll()}
  catch(e){st("Не удалось прочитать ссылку. Плейлист должен быть публичным, а сервер запущен")}
  draw()}
+async function enqueueNative(t,url){
+ if(!DownloadCtl)throw new Error("Нативный загрузчик недоступен. Пересобери APK");
+ const query=url?"url="+encodeURIComponent(url):"q="+encodeURIComponent(t.artist+" - "+t.title)+"&dur="+(t.dur||0);
+ const endpoint=base()+"/fetch?"+query+"&"+kq();
+ await DownloadCtl.enqueue({id:t.id,title:t.title,artist:t.artist,url:endpoint});
+ t.downloading=1;await save(t);draw();
+}
+async function syncNativeCompleted(){
+ if(!DownloadCtl||!db||nativeImporting)return;
+ nativeImporting=true;
+ try{
+  const result=await DownloadCtl.getCompleted();
+  for(const item of (result.items||[])){
+   let t=tracks.find(x=>x.id===item.id);
+   if(!t){t={id:item.id,title:item.title||"Трек",artist:item.artist||"",dur:0,pls:["Загруженное"],blob:null};tracks.push(t)}
+   if(!t.blob){
+    const file=await DownloadCtl.readCompleted({file:item.file});
+    const raw=atob(file.data),bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    t.blob=new Blob([bytes],{type:item.mime||"audio/mp4"});t.fail=0;t.downloading=0;
+    await save(t);
+   }
+   await DownloadCtl.ackCompleted({file:item.file});
+  }
+  draw();
+ }catch(e){console.warn("Native download import",e)}
+ finally{nativeImporting=false}
+}
 async function dl(t,url){
  for(let k=0;k<3;k++){try{
   const r=await fetch(`${base()}/fetch?${url?"url="+encodeURIComponent(url):"q="+encodeURIComponent(t.artist+" - "+t.title)+"&dur="+(t.dur||0)}&${kq()}`);
@@ -234,6 +270,15 @@ async function dl(t,url){
  t.fail=1;await save(t);return false}
 async function dlAll(){if(busy)return;await syncServer();const todo=tracks.filter(t=>!t.blob);
  if(!todo.length&&!tracks.some(t=>t.blob&&!t.ex)){st(tracks.length?"Всё уже скачано":"Сначала добавь плейлист кнопкой +");return}
+ if(native&&DownloadCtl){
+  if(!todo.length){st("Обложки и тексты загружаются…");for(const t of tracks.filter(x=>x.blob&&!x.ex))await extras(t);st("Обложки и тексты загружены");return}
+  busy=true;$("ln").style.display="block";let added=0;
+  try{for(const t of todo){await enqueueNative(t);added++;$("pb").style.width=(added/todo.length*100)+"%";st(`Поставлено в фоновую очередь: ${added} из ${todo.length}`)}
+   st(`Фоновая загрузка запущена: ${added} треков. Можно свернуть приложение.`)}
+  catch(e){st("Ошибка фоновой загрузки: "+(e.message||e))}
+  finally{busy=false}
+  return;
+ }
  busy=true;$("ln").style.display="block";let i=0,bad=0;
  for(const t of todo){st(`Скачиваю ${i+1} из ${todo.length}: ${t.title}`);
   if(!await dl(t))bad++;else await extras(t);i++;$("pb").style.width=(i/todo.length*100)+"%";draw()}
@@ -257,7 +302,7 @@ function draw(){const q=$("q").value.toLowerCase(),L=$("list");L.innerHTML="";
   d.querySelector(".av").textContent=(t.title[0]||"♪").toUpperCase();const cu=coverUrl(t);if(cu){const av=d.querySelector(".av");av.textContent="";av.style.background=`url(${cu}) center/cover`}
   d.querySelector("b").textContent=t.title;d.querySelector("small").textContent=t.artist;
   d.oncontextmenu=e=>{e.preventDefault();menu(t)};const mb=document.createElement("button");mb.className="mo";mb.textContent="⋯";mb.onclick=e=>{e.stopPropagation();menu(t)};d.appendChild(mb);
-  d.onclick=async()=>{if(t.blob)play(t);else if(!busy){busy=true;st("Скачиваю: "+t.title);const ok=await dl(t);if(ok)await extras(t);busy=false;st(ok?"Готово":"Трек не найден");draw();if(ok)play(t)}};
+  d.onclick=async()=>{if(t.blob)play(t);else if(native&&DownloadCtl){try{await enqueueNative(t);st("Добавлено в фоновую загрузку: "+t.title)}catch(e){st("Ошибка: "+(e.message||e))}}else if(!busy){busy=true;st("Скачиваю: "+t.title);const ok=await dl(t);if(ok)await extras(t);busy=false;st(ok?"Готово":"Трек не найден");draw();if(ok)play(t)}};
   L.appendChild(d)})}
 
 const fmt=s=>isFinite(s)?Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0"):"0:00";
@@ -305,6 +350,7 @@ async function pick(it,target){closeMenu();if(busy){st("Подожди, идёт
   t=tracks.find(x=>x.id==id);
   if(!t){t={id,title:nm.title,artist:nm.artist,dur:it.dur||0,pls:["Найденное"],blob:null};tracks.push(t);await save(t)}
   else if(t.blob){st("Этот трек уже скачан");draw();return}}
+ if(native&&DownloadCtl){try{await enqueueNative(t,it.url);st("Добавлено в фоновую загрузку: "+t.title)}catch(e){st("Ошибка: "+(e.message||e))}return}
  busy=true;st("Скачиваю: "+t.title);draw();
  const ok=await dl(t,it.url);
  if(ok){t.ex=0;await extras(t)}
