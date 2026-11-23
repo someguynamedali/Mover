@@ -60,6 +60,8 @@ body.full #fp{transform:none}
 .fc{display:flex;justify-content:space-between;align-items:center;margin-top:10px}.fc button{font-size:26px;padding:10px;opacity:.9}
 .fc .pp{width:70px;height:70px;font-size:28px!important}.fc .off{opacity:.35}
 .mo{font-size:22px;padding:4px 8px;color:var(--mut)}
+#lt{width:100%;height:42vh;background:rgba(255,255,255,.07);border:0;border-radius:14px;padding:12px;color:var(--fg);font:15px/1.4 system-ui,sans-serif;resize:none;margin:8px 0 12px}
+#sr .row{display:flex;gap:8px;flex-wrap:wrap}
 .c button,.fc button{transition:transform .12s,background .2s,box-shadow .2s}
 .c button:not(.pp),.fc button:not(.pp){width:42px;height:42px;padding:0;border-radius:50%;background:rgba(255,255,255,.09);display:inline-flex;align-items:center;justify-content:center;font-size:18px}
 .fc button:not(.pp){width:54px;height:54px;font-size:22px}
@@ -133,6 +135,7 @@ body.sheet #ov{opacity:1;pointer-events:auto}body.sheet #sh{transform:none}
 <input type="text" id="gid" placeholder="ID гиста (постоянная ссылка, необязательно)" style="width:100%;background:rgba(255,255,255,.07);border:0;border-radius:14px;padding:12px;color:var(--fg);font:inherit;margin-bottom:8px">
 <button class="pill g" onclick="ping()">Проверить сервер</button>
 <p style="margin-top:14px">Сервер запускается в Termux и нужен только пока идёт скачивание. Потом музыка играет без интернета. Нажми «⋯» у трека, чтобы добавить его в плейлист или удалить.</p>
+<button class="pill g" style="margin-top:12px" onclick="showLog()">Журнал плеера</button>
 <button class="dng" onclick="clearAll()">Удалить всю музыку с телефона</button></div>
 
 <script>
@@ -176,7 +179,7 @@ async function ping(){if(applyInvite($("srv").value))lastSync=0;await syncServer
   if(!r.ok||(await r.text()).trim()!=="ok")throw 0;$("dot").className="dot ok";$("sst").textContent="Сервер подключён"}
  catch(e){$("dot").className="dot bad";$("sst").textContent="Нет связи или неверный пароль"}}
 ping();
-$("st").textContent="Версия 17";
+$("st").textContent="Версия 18";
 document.querySelectorAll(".plus,.fab").forEach(b=>{b.addEventListener("touchend",e=>{e.preventDefault();sheet(1)},{passive:false});b.addEventListener("click",()=>sheet(1))});
 const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 if(!native&&/^https?:$/.test(location.protocol)&&"serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
@@ -218,6 +221,7 @@ function menu(t,pick){const m=$("mn"),pls=[...new Set(tracks.flatMap(x=>x.pls||[
   if(t.blob){add("Играть следующим",()=>{queue=queue.filter(x=>x!==t);queue.unshift(t);qLabel();prep();closeMenu();st("Следующим: "+t.title)});
    add("В конец очереди",()=>{if(!queue.includes(t))queue.push(t);qLabel();prep();closeMenu();st("В очереди: "+t.title)})}
   add("Найти другую версию…",()=>{closeMenu();searchOpen(t.artist+" "+t.title,t)});
+  add("Текст песни…",()=>{closeMenu();lyrEditor(t)});
   add("Добавить в плейлист…",()=>menu(t,1));
   if(flt&&(t.pls||[]).includes(flt))add(`Убрать из «${flt}»`,()=>{t.pls=t.pls.filter(p=>p!=flt);save(t);closeMenu();draw()});
   add("Удалить с телефона",()=>{closeMenu();del(t)},"r")}
@@ -286,6 +290,35 @@ function draw(){const q=$("q").value.toLowerCase(),L=$("list");L.innerHTML="";
   L.appendChild(d)})}
 
 const fmt=s=>isFinite(s)?Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0"):"0:00";
+const LOG=[];try{LOG.push(...JSON.parse(localStorage.getItem("mmlog")||"[]"))}catch(e){}
+function lg(m){const d=new Date(),p=n=>String(n).padStart(2,"0");LOG.push(p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds())+" "+m);while(LOG.length>200)LOG.shift();try{localStorage.setItem("mmlog",JSON.stringify(LOG))}catch(e){}}
+lg("— запуск, сеть: "+(navigator.onLine?"есть":"нет"));
+addEventListener("online",()=>lg("сеть: появилась"));addEventListener("offline",()=>lg("сеть: пропала"));
+document.addEventListener("freeze",()=>lg("СТРАНИЦА ЗАМОРОЖЕНА системой"));document.addEventListener("resume",()=>lg("страница разморожена"));
+document.addEventListener("visibilitychange",()=>lg(document.hidden?"приложение скрыто":"приложение на экране"));
+let hb=Date.now();setInterval(()=>{const n=Date.now(),gap=Math.round((n-hb)/1000);hb=n;if(gap>45)lg("JS не работал ~"+gap+" с (заморозка?)");if(!au.paused)lg("играет: "+(cur?cur.title:"?")+" "+Math.round(au.currentTime)+"/"+Math.round(au.duration||0)+" с")},30000);
+function showLog(){openMenu("Журнал плеера","Если музыка остановилась, открой это и пришли мне",[]);const m=$("mn"),pre=document.createElement("pre");
+ pre.style.cssText="white-space:pre-wrap;font-size:12px;color:#ccc;max-height:45vh;overflow:auto;user-select:text";pre.textContent=LOG.slice(-80).join("\n")||"пусто";m.appendChild(pre);
+ const b1=document.createElement("button");b1.className="mi";b1.textContent="Копировать";b1.onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText(LOG.join("\n")).then(()=>st("Журнал скопирован"))};m.appendChild(b1);
+ const b2=document.createElement("button");b2.className="mi";b2.textContent="Закрыть";b2.onclick=closeMenu;m.appendChild(b2)}
+let lockRel=null;
+function holdLock(on){if(!navigator.locks)return;
+ if(on&&!lockRel){let rel;lockRel=()=>{};navigator.locks.request("mm-play",()=>new Promise(r=>{rel=r;lockRel=r})).catch(()=>{lockRel=null})}
+ else if(!on&&lockRel){lockRel();lockRel=null}}
+function edBtn(L,t){if(!t)return;const b=document.createElement("button");b.className="pill g";b.style.cssText="display:block;margin:18px auto";b.textContent="Изменить текст";b.onclick=()=>lyrEditor(t);L.appendChild(b)}
+function lyrEditor(t){const R=$("sr");R.innerHTML="";
+ const h=document.createElement("h2");h.textContent="Текст: "+t.title;R.appendChild(h);
+ const s=document.createElement("small");s.textContent="Вставь или напиши текст. С метками времени вида [01:23.45] строки будут подсвечиваться по ходу песни.";R.appendChild(s);
+ const ta=document.createElement("textarea");ta.id="lt";ta.value=(t.lyr&&(t.lyr.synced||t.lyr.plain))||"";R.appendChild(ta);
+ const row=document.createElement("div");row.className="row";
+ const sv=document.createElement("button");sv.className="pill";sv.textContent="Сохранить";
+ sv.onclick=async()=>{const v=ta.value.trim();
+  if(!v)t.lyr=null;else if(/\[\d+:\d+(\.\d+)?\]/.test(v))t.lyr={synced:v,plain:""};else t.lyr={synced:"",plain:v};
+  t.lyrMan=!!v;t.ex=1;await save(t);closeMenu();if(lyrOpen&&cur)setLyr(cur);st(v?"Текст сохранён":"Текст удалён");draw()};
+ row.appendChild(sv);
+ if(t.lyr){const d=document.createElement("button");d.className="pill g";d.textContent="Удалить текст";d.onclick=()=>{ta.value="";sv.click()};row.appendChild(d)}
+ const cl=document.createElement("button");cl.className="pill g";cl.textContent="Закрыть";cl.onclick=closeMenu;row.appendChild(cl);
+ R.appendChild(row);document.body.classList.add("srch")}
 let queue=[],sleepAt=0,sleepEnd=false;
 const qLabel=()=>{$("qb").textContent=queue.length?"Очередь "+queue.length:"Очередь"};
 function openMenu(h,sub,items){const m=$("mn");m.innerHTML="";
@@ -341,16 +374,17 @@ function parseLrc(x){const out=[];for(const ln of x.split("\n")){const m=[...ln.
 async function extras(t){let net=false;
  try{const r=await fetch(`${base()}/cover?artist=${enc(t.artist)}&title=${enc(t.title)}&${kq()}`);
   if(r.ok){t.cover=await r.blob();if(cvMap.has(t.id)){URL.revokeObjectURL(cvMap.get(t.id));cvMap.delete(t.id)}}else if(r.status==401)net=true}catch(e){net=true}
- try{const r=await fetch(`${base()}/lyrics?artist=${enc(t.artist)}&title=${enc(t.title)}&dur=${t.dur||0}&${kq()}`);
+ if(!t.lyrMan)try{const r=await fetch(`${base()}/lyrics?artist=${enc(t.artist)}&title=${enc(t.title)}&dur=${t.dur||0}&${kq()}`);
   if(r.ok)t.lyr=await r.json();else if(r.status==401)net=true}catch(e){net=true}
  if(!net)t.ex=1;await save(t)}
 let lyrOpen=false,lyrLines=[],lyrI=-1;
 function setLyr(t){const L=$("ly");L.innerHTML="";L.className="";lyrLines=[];lyrI=-1;const y=t&&t.lyr;
- if(y&&y.synced){lyrLines=parseLrc(y.synced);lyrLines.forEach(l=>{const p=document.createElement("p");p.textContent=l.s||"♪";p.onclick=()=>{au.currentTime=l.t};L.appendChild(p)})}
- else if(y&&y.plain){L.className="plain";y.plain.split("\n").forEach(x=>{const p=document.createElement("p");p.textContent=x||"\u00a0";L.appendChild(p)})}
+ if(y&&y.synced){lyrLines=parseLrc(y.synced);lyrLines.forEach(l=>{const p=document.createElement("p");p.textContent=l.s||"♪";p.onclick=()=>{au.currentTime=l.t};L.appendChild(p)});edBtn(L,t)}
+ else if(y&&y.plain){L.className="plain";y.plain.split("\n").forEach(x=>{const p=document.createElement("p");p.textContent=x||"\u00a0";L.appendChild(p)});edBtn(L,t)}
  else{const p=document.createElement("p");p.textContent="Текст не найден";L.appendChild(p);
   const b=document.createElement("button");b.className="pill g";b.textContent="Искать ещё раз";
-  b.onclick=async()=>{b.textContent="Ищу…";if(t){t.ex=0;await extras(t);setLyr(t);draw()}};L.appendChild(b)}}
+  b.onclick=async()=>{b.textContent="Ищу…";if(t){t.ex=0;await extras(t);setLyr(t);draw()}};L.appendChild(b);
+  if(t){const a=document.createElement("button");a.className="pill";a.style.cssText="display:block;margin:12px auto";a.textContent="Добавить текст";a.onclick=()=>lyrEditor(t);L.appendChild(a)}}}
 function hilite(ct){if(!lyrOpen||!lyrLines.length)return;let i=-1;for(let k=0;k<lyrLines.length;k++){if(lyrLines[k].t<=ct+0.2)i=k;else break}
  if(i!==lyrI){lyrI=i;const kids=$("ly").children;for(let k=0;k<kids.length;k++)kids[k].classList.toggle("on",k===i);if(i>=0&&kids[i])kids[i].scrollIntoView({block:"center",behavior:"smooth"})}}
 function togLyr(){lyrOpen=!lyrOpen;document.body.classList.toggle("lyr",lyrOpen);$("tx").textContent=lyrOpen?"Обложка":"Текст";if(lyrOpen){setLyr(cur);hilite(au.currentTime)}}
@@ -377,7 +411,7 @@ function nextOf(d){const l=pool();if(!l.length)return null;if(d==1&&queue.length
  if(shuffle&&l.length>1)return shufNext();
  const i=cur?l.indexOf(cur):-1;return l[(i+d+l.length)%l.length]}
 function loadTo(el,t){if(el._u)URL.revokeObjectURL(el._u);el._u=URL.createObjectURL(t.blob);el.src=el._u;el._t=t;el.preload="auto"}
-function safePlay(el){const p=el.play();if(p&&p.catch)p.catch(()=>{setTimeout(()=>{el.play().catch(x=>st("Не удалось продолжить: "+(x&&x.name||x)))},400)})}
+function safePlay(el){const p=el.play();if(p&&p.catch)p.catch(()=>{setTimeout(()=>{el.play().catch(x=>{lg("play() отклонён: "+(x&&x.name||x));st("Не удалось продолжить: "+(x&&x.name||x))})},400)})}
 function wantNext(){const l=pool();if(rep==2)return cur;if(queue.length)return queue[0];
  if(shuffle&&l.length>1)return shufNext();
  if(!l.length)return null;const i=cur?l.indexOf(cur):-1;return(rep==1||i<l.length-1)?l[(i+1)%l.length]:null}
@@ -386,9 +420,11 @@ function prep(){const n=wantNext();
  else{au2._t=null;if(au2._u){URL.revokeObjectURL(au2._u);au2._u=null}au2.removeAttribute("src")}}
 function play(t){au2.pause();cur=t;queue=queue.filter(x=>x!==t);qLabel();if(!sleepAt)au.volume=1;if(au._t!==t)loadTo(au,t);else au.currentTime=0;
  safePlay(au);meta(t);draw();prep()}
-function swap(){const n=au2._t;if(!n||!n.blob)return false;
- const old=au;old.pause();au=au2;au2=old;cur=n;if(queue[0]===n){queue.shift();qLabel()}if(!sleepAt)au.volume=1;au.currentTime=0;safePlay(au);
- meta(n);draw();prep();return true}
+let swapLock=false;
+function swap(overlap){const n=au2._t;if(!n||!n.blob)return false;
+ const old=au;if(!overlap)old.pause();au=au2;au2=old;cur=n;if(queue[0]===n){queue.shift();qLabel()}if(!sleepAt)au.volume=1;au.currentTime=0;safePlay(au);
+ lg("переход на: "+n.title+(overlap?" (внахлёст)":""));swapLock=true;setTimeout(()=>{swapLock=false},2500);
+ meta(n);draw();if(overlap)setTimeout(prep,1500);else prep();return true}
 function step(d){if(!pool().length)return;
  if(d==1&&cur&&rep!=2&&au2._t&&au2._t!==cur&&swap())return;
  play(nextOf(d))}
@@ -396,17 +432,19 @@ function shuf(){if(!tracks.some(t=>t.blob)){st("Пока нечего играт
 function togShuf(){shuffle=!shuffle;if(shuffle){bag=[];bagInit=false}$("bs").classList.toggle("off",!shuffle);prep()}
 function togRep(){rep=(rep+1)%3;$("br").textContent=rep==2?"🔂":"🔁";$("br").classList.toggle("off",rep==0);prep()}
 function toggle(){if(!cur)return step(1);au.paused?au.play():au.pause()}
-const ui=g=>{document.body.classList.toggle("go",g);$("pp").textContent=$("pp2").textContent=g?"⏸":"▶";$("dc").classList.toggle("go",g);document.querySelectorAll(".eq").forEach(e=>e.classList.toggle("go",g))};
+const ui=g=>{holdLock(g);document.body.classList.toggle("go",g);$("pp").textContent=$("pp2").textContent=g?"⏸":"▶";$("dc").classList.toggle("go",g);document.querySelectorAll(".eq").forEach(e=>e.classList.toggle("go",g))};
 let MC=null;try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())MC=Capacitor.registerPlugin("MediaCtl")}catch(e){}
 const mc=(t,p)=>{try{if(MC&&t)MC.update({title:t.title,artist:t.artist,playing:p}).catch(()=>{})}catch(e){}};
 try{if(MC)MC.addListener("action",e=>{const a=e.a;if(a=="prev")step(-1);else if(a=="next")step(1);else if(a=="play")au.play();else if(a=="pause")au.pause();else toggle()})}catch(e){MC=null}
 function bind(el){
+ ["play","pause","ended","error","stalled","waiting","emptied"].forEach(ev=>el.addEventListener(ev,()=>lg("плеер "+(el===au?"A":"B")+": "+ev+(ev=="error"&&el.error?" код "+el.error.code:"")+(document.hidden?" [фон]":""))));
  el.onplay=()=>{if(el!==au){el.pause();return}ui(1);mc(cur,true);ps("playing")};
  el.onpause=()=>{if(el!==au||el.ended)return;ui(0);mc(cur,false);ps("paused")};
  el.onended=()=>{if(el!==au)return;if(sleepEnd){sleepEnd=false;ui(0);mc(cur,false);ps("paused");slLabel();st("Таймер сна: музыка остановлена");return}
   if(rep==2){el.currentTime=0;safePlay(el)}
   else if(!swap()){const n=wantNext();if(n&&n.blob)play(n);else{ui(0);mc(cur,false);ps("paused")}}};
  el.ontimeupdate=()=>{if(el!==au)return;hilite(el.currentTime);sleepTick();
+  if(el.duration&&isFinite(el.duration)&&el.duration-el.currentTime<0.7&&el.currentTime>1&&rep!=2&&!sleepEnd&&!swapLock&&au2._t&&au2._t!==cur)swap(true);
   if(el.duration){const p=el.currentTime/el.duration*100;$("sk").value=p;$("mb").style.width=p+"%"}
   $("tc").textContent=fmt(el.currentTime);$("td").textContent=fmt(el.duration)}}
 bind(au);bind(au2);
