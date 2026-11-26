@@ -179,7 +179,7 @@ async function ping(){if(applyInvite($("srv").value))lastSync=0;await syncServer
   if(!r.ok||(await r.text()).trim()!=="ok")throw 0;$("dot").className="dot ok";$("sst").textContent="Сервер подключён"}
  catch(e){$("dot").className="dot bad";$("sst").textContent="Нет связи или неверный пароль"}}
 ping();
-$("st").textContent="Версия 18";
+$("st").textContent="Версия 19";
 document.querySelectorAll(".plus,.fab").forEach(b=>{b.addEventListener("touchend",e=>{e.preventDefault();sheet(1)},{passive:false});b.addEventListener("click",()=>sheet(1))});
 const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 if(!native&&/^https?:$/.test(location.protocol)&&"serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
@@ -246,10 +246,10 @@ function refresh(){return new Promise(res=>{if(!db)return res();tx("readonly").g
  for(const r of e.target.result){const t=m.get(r.id);if(t){if(r.blob&&!t.blob){t.blob=r.blob;t.fail=0;t.ex=r.ex}else if(r.fail&&!t.blob)t.fail=r.fail}else{if(!r.pls)r.pls=[];tracks.push(r)}}
  draw();res()}})}
 async function fillExtras(){if(busy)return;const f=tracks.filter(t=>t.blob&&!t.ex);if(!f.length)return;
- busy=true;let k=0;for(const t of f){st(`Обложки и тексты ${++k} из ${f.length}`);await extras(t);draw()}busy=false;st("Готово")}
+ busy=true;let k=0;await pool_(f,4,async t=>{await extras(t);st(`Обложки и тексты ${++k} из ${f.length}`);draw()});busy=false;st("Готово")}
 async function bgStart(){try{
  if(!("BackgroundFetchManager"in window)||!("serviceWorker"in navigator))return false;
- const reg=await navigator.serviceWorker.ready;if(!reg.backgroundFetch)return false;
+ const reg=await navigator.serviceWorker.getRegistration();if(!reg||!reg.active||!reg.backgroundFetch)return false;
  for(const id of await reg.backgroundFetch.getIds()){const r=await reg.backgroundFetch.get(id);if(r&&r.result==="")return "running"}
  const c=await caches.open("mm-meta");await c.put("cfg",new Response(JSON.stringify({base:base(),key:$("key").value})));
  for(const t of tracks)if(!t.blob&&t.fail){t.fail=0;await save(t)}
@@ -264,10 +264,10 @@ async function dlAll(){if(busy)return;await syncServer();const todo=tracks.filte
  if(!todo.length&&!tracks.some(t=>t.blob&&!t.ex)){st(tracks.length?"Всё уже скачано":"Сначала добавь плейлист кнопкой +");return}
  if(todo.length){const bg=await bgStart();if(bg){st(bg==="running"?"Загрузка уже идёт в фоне":"Фоновая загрузка запущена: смотри уведомление в шторке");return}}
  busy=true;$("ln").style.display="block";let i=0,bad=0;
- for(const t of todo){st(`Скачиваю ${i+1} из ${todo.length}: ${t.title}`);
-  if(!await dl(t))bad++;else await extras(t);i++;$("pb").style.width=(i/todo.length*100)+"%";draw()}
+ await pool_(todo,3,async t=>{st(`Скачиваю: ${t.title} (готово ${i} из ${todo.length})`);
+  if(!await dl(t))bad++;else await extras(t);i++;$("pb").style.width=(i/todo.length*100)+"%";draw()});
  const fill=tracks.filter(t=>t.blob&&!t.ex);let k=0;
- for(const t of fill){st(`Обложки и тексты ${++k} из ${fill.length}`);await extras(t);$("pb").style.width=(k/fill.length*100)+"%";draw()}
+ await pool_(fill,4,async t=>{await extras(t);st(`Обложки и тексты ${++k} из ${fill.length}`);$("pb").style.width=(k/fill.length*100)+"%";draw()});
  st(todo.length?`Готово. Скачано: ${todo.length-bad}, не найдено: ${bad}`:"Обложки и тексты загружены");busy=false;setTimeout(()=>$("ln").style.display="none",2500)}
 function clearAll(){if(confirm("Удалить всю музыку с телефона?"))tx("readwrite").clear().onsuccess=()=>{tracks=[];queue=[];cur=null;au.pause();flt="";sheet(0);draw()}}
 function del(t){if(confirm(`Удалить «${t.title}»?`)){tx("readwrite").delete(t.id).onsuccess=()=>{tracks=tracks.filter(x=>x!=t);queue=queue.filter(x=>x!==t);qLabel();if(cur==t){au.pause();cur=null}draw()}}}
@@ -372,11 +372,13 @@ const cvMap=new Map(),enc=encodeURIComponent;
 function coverUrl(t){if(!t.cover)return null;let u=cvMap.get(t.id);if(!u){u=URL.createObjectURL(t.cover);cvMap.set(t.id,u)}return u}
 function parseLrc(x){const out=[];for(const ln of x.split("\n")){const m=[...ln.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];if(!m.length)continue;const txt=ln.replace(/\[[^\]]*\]/g,"").trim();m.forEach(a=>out.push({t:+a[1]*60+parseFloat(a[2]),s:txt}))}return out.sort((a,b)=>a.t-b.t)}
 async function extras(t){let net=false;
- try{const r=await fetch(`${base()}/cover?artist=${enc(t.artist)}&title=${enc(t.title)}&${kq()}`);
-  if(r.ok){t.cover=await r.blob();if(cvMap.has(t.id)){URL.revokeObjectURL(cvMap.get(t.id));cvMap.delete(t.id)}}else if(r.status==401)net=true}catch(e){net=true}
- if(!t.lyrMan)try{const r=await fetch(`${base()}/lyrics?artist=${enc(t.artist)}&title=${enc(t.title)}&dur=${t.dur||0}&${kq()}`);
-  if(r.ok)t.lyr=await r.json();else if(r.status==401)net=true}catch(e){net=true}
+ const cv=(async()=>{try{const r=await fetch(`${base()}/cover?artist=${enc(t.artist)}&title=${enc(t.title)}&${kq()}`);
+  if(r.ok){t.cover=await r.blob();if(cvMap.has(t.id)){URL.revokeObjectURL(cvMap.get(t.id));cvMap.delete(t.id)}}else if(r.status==401)net=true}catch(e){net=true}})();
+ const ly=(async()=>{if(t.lyrMan)return;try{const r=await fetch(`${base()}/lyrics?artist=${enc(t.artist)}&title=${enc(t.title)}&dur=${t.dur||0}&${kq()}`);
+  if(r.ok)t.lyr=await r.json();else if(r.status==401)net=true}catch(e){net=true}})();
+ await Promise.all([cv,ly]);
  if(!net)t.ex=1;await save(t)}
+async function pool_(list,n,fn){let k=0;await Promise.all(Array.from({length:n},async()=>{while(k<list.length){const t=list[k++];await fn(t)}}))}
 let lyrOpen=false,lyrLines=[],lyrI=-1;
 function setLyr(t){const L=$("ly");L.innerHTML="";L.className="";lyrLines=[];lyrI=-1;const y=t&&t.lyr;
  if(y&&y.synced){lyrLines=parseLrc(y.synced);lyrLines.forEach(l=>{const p=document.createElement("p");p.textContent=l.s||"♪";p.onclick=()=>{au.currentTime=l.t};L.appendChild(p)});edBtn(L,t)}
