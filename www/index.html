@@ -96,10 +96,74 @@ body.sheet #ov{opacity:1;pointer-events:auto}body.sheet #sh{transform:none}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--mut)}.dot.ok{background:#3ddc84}.dot.bad{background:#ff6b6b}
 #srv{width:100%;background:rgba(255,255,255,.07);border:0;border-radius:14px;padding:12px;color:var(--fg);font:inherit;margin-bottom:8px}
 .dng{color:#ff6b6b!important;margin-top:16px;padding:8px 0;font-size:14px}
+
+/* ===== redesign ===== */
+:root{--bg:#0a0a0f;--bg2:#12121a;--card:#1a1a24;--card2:#222230;--dim:#7a7a8a;--mut:#9a9aaa}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);padding:0 16px 200px;-webkit-font-smoothing:antialiased}
+body::before{background:radial-gradient(80% 45% at 20% -5%,hsla(var(--h),70%,45%,.32),transparent),radial-gradient(70% 40% at 100% 90%,hsla(calc(var(--h) + 100),60%,45%,.2),transparent)}
+header{position:sticky;top:0;z-index:4;margin:0 -16px;padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;background:linear-gradient(rgba(10,10,15,.96),rgba(10,10,15,.65));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);align-items:center}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-i{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,hsl(var(--h),70%,50%),hsl(var(--h),75%,28%));display:grid;place-items:center;box-shadow:0 4px 14px hsla(var(--h),70%,45%,.4)}
+.logo-i svg{width:20px;height:20px;fill:#fff}
+.logo-t{font-size:19px;font-weight:700;letter-spacing:-.5px}.logo-t b{color:var(--ac);font-weight:700}
+.plus{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid rgba(255,255,255,.06);font-size:22px;backdrop-filter:none;display:grid;place-items:center;padding:0}
+.hero{margin:10px 0 18px}
+.hero-t{font-size:28px;font-weight:700;letter-spacing:-1px;background:linear-gradient(135deg,#fff,#b0b0c0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero-s{color:var(--mut);font-size:13px;margin:4px 0 16px;line-height:1.45}
+#big{display:flex;gap:10px;margin:0 0 12px}#big:empty{display:none}
+.stat{flex:1;background:var(--card);border:1px solid rgba(255,255,255,.04);border-radius:16px;padding:12px 14px}
+.stat b{display:block;font-size:22px;font-weight:700;color:var(--ac);letter-spacing:-.5px}
+.stat span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qb{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--card);border:1px solid rgba(255,255,255,.04);text-align:left;transition:transform .15s}
+.qb:active{transform:scale(.97)}
+.qb.pr{background:linear-gradient(135deg,hsl(var(--h),70%,40%),hsl(var(--h),75%,24%));border-color:transparent}
+.qi{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);display:grid;place-items:center;flex:none}
+.qb.pr .qi{background:rgba(255,255,255,.2)}.qi svg{width:18px;height:18px;fill:currentColor}
+.ql{display:block;font-size:13px;font-weight:600}.qs{display:block;font-size:11px;color:var(--mut);margin-top:2px}.qb.pr .qs{color:rgba(255,255,255,.82)}
+.line{height:4px;margin-top:14px}#st{margin-top:10px;font-size:12px;color:var(--mut)}
+.ch{background:var(--card);border:1px solid rgba(255,255,255,.05);color:var(--fg);font-weight:500;font-size:13px}.ch.on{background:var(--fg);color:var(--bg);font-weight:600}
+input[type=search]{background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%238a8a9a' d='M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E") no-repeat 14px center/18px;border:1px solid rgba(255,255,255,.05);padding:12px 14px 12px 42px;border-radius:16px;margin-bottom:10px;font-size:14px;outline:none}
+input[type=search]:focus{border-color:var(--ac)}
+.t{padding:10px;border-radius:12px;gap:12px}
+.t.on{background:hsla(var(--h),70%,50%,.1)}.t.on .i b{color:var(--ac)}
+.av{width:48px;height:48px;border-radius:8px;font-size:18px}
+.i b{font-size:14px;font-weight:500}.i small{font-size:12px;color:var(--mut)}
+.mo{width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center;font-size:20px;flex:none}.mo:active{background:var(--card2)}
+.empty{padding:36px 20px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;padding:6px 12px calc(6px + env(safe-area-inset-bottom));background:rgba(10,10,15,.88);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-top:1px solid rgba(255,255,255,.05)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;color:var(--mut);font-size:10px;font-weight:500}
+.nb.on{color:var(--ac)}.nb svg{width:22px;height:22px;fill:currentColor}
+#pl{left:8px;right:8px;bottom:calc(64px + env(safe-area-inset-bottom));border-radius:16px;padding:8px;background:rgba(26,26,36,.8);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.top{gap:10px}
+.disc{width:44px;height:44px;border-radius:8px;animation:none;background:linear-gradient(135deg,hsl(var(--h),45%,32%),#1a1a24)}
+.disc::after{display:none}
+.nm b{font-size:13px;font-weight:600}.nm small{font-size:11px}
+.mini{margin:8px 2px 0;height:2px}
+#fp{background:rgba(10,10,15,.97)}
+#fp::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 45% at 50% 28%,hsla(var(--h),70%,45%,.35),transparent);pointer-events:none;z-index:-1}
+.cov{border-radius:20px}
+#ft{font-size:22px;text-align:center;letter-spacing:-.5px}#fa{text-align:center;font-size:15px}
+.cl,.tx{background:rgba(255,255,255,.08);border-radius:20px}
+.cl{width:38px;height:38px;border-radius:50%;padding:0;font-size:22px;display:grid;place-items:center;color:var(--fg)}
+#sh,#mn,#sr{background:var(--bg2);border-radius:24px 24px 0 0}
+#sh::before,#mn::before,#sr::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:-6px auto 14px}
+#sh h2{font-weight:700;font-size:20px;letter-spacing:-.5px}
+.fl{border:2px dashed rgba(255,255,255,.12);background:transparent;font-weight:600}.fl:active{border-color:var(--ac);background:hsla(var(--h),70%,45%,.06)}
+.mi{font-size:15px}.rs b{font-size:14px}
+.fab{display:none}
+#toast{position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:50%;transform:translateX(-50%) translateY(-130px);background:var(--card2);padding:11px 18px;border-radius:16px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.08);z-index:200;transition:transform .3s;max-width:90vw;pointer-events:none;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
 </style></head><body>
-<header><h1>music<b>mover</b></h1><button class="plus" onclick="sheet(1)">+</button></header>
-<div class="hero"><div class="big" id="big"></div>
-<div class="acts"><button class="pill" onclick="shuf()">Вперемешку</button><button class="pill g" onclick="sheet(1)">+ Плейлист</button><button class="pill g" onclick="dlAll()">Скачать недостающее</button></div>
+<header><div class="logo"><div class="logo-i"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></div><div class="logo-t">music<b>mover</b></div></div><button class="plus" onclick="sheet(1)">+</button></header>
+<div class="hero"><div class="hero-t">Моя музыка</div><div class="hero-s">Слушай без интернета, пока сервер нужен только для скачивания</div>
+<div id="big"></div>
+<div class="quick">
+<button class="qb pr" onclick="shuf()"><span class="qi"><svg viewBox="0 0 24 24"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></span><span><span class="ql">Вперемешку</span><span class="qs">все скачанные</span></span></button>
+<button class="qb" onclick="sheet(1)"><span class="qi"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span><span><span class="ql">Плейлист</span><span class="qs">файл или ссылка</span></span></button>
+<button class="qb" onclick="dlAll()"><span class="qi"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></span><span><span class="ql">Скачать</span><span class="qs">недостающее</span></span></button>
+<button class="qb" onclick="openSearch()"><span class="qi"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span><span><span class="ql">Найти трек</span><span class="qs">YouTube, SoundCloud</span></span></button>
+</div>
 <div class="line" id="ln"><i id="pb"></i></div><div id="st"></div></div>
 <div id="chips"></div>
 <input type="search" id="q" placeholder="Найти трек или исполнителя" oninput="draw()">
@@ -117,6 +181,8 @@ body.sheet #ov{opacity:1;pointer-events:auto}body.sheet #sh{transform:none}
 <div class="tm"><span id="tc">0:00</span><span id="td">0:00</span></div>
 <div class="fc"><button id="bs" class="off" onclick="togShuf()">🔀</button><button onclick="step(-1)">⏮</button><button class="pp" id="pp2" onclick="toggle()">▶</button><button onclick="step(1)">⏭</button><button id="br" class="off" onclick="togRep()">🔁</button></div></div>
 <audio id="au"></audio>
+<nav><button class="nb on" onclick="window.scrollTo({top:0,behavior:'smooth'})"><svg viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg><span>Музыка</span></button><button class="nb" onclick="goSearch()"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg><span>Поиск</span></button><button class="nb" onclick="queueMenu()"><svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg><span>Очередь</span></button><button class="nb" onclick="sheet(1)"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Добавить</span></button></nav>
+<div id="toast"></div>
 
 <button class="fab" id="fab">+</button>
 <div id="ov" onclick="sheet(0);closeMenu()"></div>
@@ -150,7 +216,10 @@ const tx=m=>db.transaction("t",m).objectStore("t");
 const load=()=>tx("readonly").getAll().onsuccess=e=>{tracks=e.target.result;tracks.forEach(t=>{if(!t.pls)t.pls=t.pl?[t.pl]:[]});draw()};
 const getRec=id=>new Promise(r=>{const q=tx("readonly").get(id);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)});
 const save=async t=>{if(!t.blob){const r=await getRec(t.id);if(r&&r.blob){t.blob=r.blob;t.fail=0}}return new Promise(r=>{tx("readwrite").put(t).onsuccess=r})};
-const st=s=>$("st").textContent=s;
+let tt=0;const toast=s=>{const e=$("toast");if(!e||!s)return;e.textContent=s;e.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("show"),2600)};
+const st=s=>{$("st").textContent=s;toast(s)};
+const openSearch=()=>{sheet(1);setTimeout(()=>$("sq").focus(),350)};
+const goSearch=()=>{window.scrollTo({top:0,behavior:"smooth"});setTimeout(()=>$("q").focus(),300)};
 const sheet=o=>document.body.classList.toggle("sheet",!!o);
 const full=o=>document.body.classList.toggle("full",!!o);
 const base=()=>{if(same)return location.origin;const v=$("srv").value.trim();try{return new URL(v).origin}catch(e){return v.replace(/\/$/,"")}};
@@ -179,7 +248,7 @@ async function ping(){if(applyInvite($("srv").value))lastSync=0;await syncServer
   if(!r.ok||(await r.text()).trim()!=="ok")throw 0;$("dot").className="dot ok";$("sst").textContent="Сервер подключён"}
  catch(e){$("dot").className="dot bad";$("sst").textContent="Нет связи или неверный пароль"}}
 ping();
-$("st").textContent="Версия 19";
+$("st").textContent="Версия 20";
 document.querySelectorAll(".plus,.fab").forEach(b=>{b.addEventListener("touchend",e=>{e.preventDefault();sheet(1)},{passive:false});b.addEventListener("click",()=>sheet(1))});
 const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 if(!native&&/^https?:$/.test(location.protocol)&&"serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
@@ -276,7 +345,7 @@ const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 function draw(){const q=$("q").value.toLowerCase(),L=$("list");L.innerHTML="";
  const got=tracks.filter(t=>t.blob).length,pls=[...new Set(tracks.flatMap(t=>t.pls||[]))];
  if(flt&&!pls.includes(flt))flt="";
- $("big").innerHTML=tracks.length?`<b>${got}</b>из ${tracks.length} треков на телефоне`:"Здесь будет твоя музыка";
+ $("big").innerHTML=tracks.length?`<div class="stat"><b>${got}</b><span>на телефоне</span></div><div class="stat"><b>${tracks.length}</b><span>всего треков</span></div><div class="stat"><b>${pls.length}</b><span>плейлистов</span></div>`:"";
  $("chips").innerHTML="";
  if(pls.length>0)["",...pls].forEach(p=>{const b=document.createElement("button");b.className="ch"+(flt==p?" on":"");b.textContent=p||"Все";b.onclick=()=>{flt=p;draw()};$("chips").appendChild(b)});
  if(!tracks.length){L.innerHTML='<div class="empty">Пока тихо.<br>Добавь плейлист из Spotify и слушай где угодно, даже без сети.<br><button class="pill" onclick="sheet(1)">Добавить плейлист</button></div>';return}
